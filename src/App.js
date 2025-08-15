@@ -3,59 +3,31 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 
-// We are moving the initialization inside the useEffect for better control
-const API_KEY = process.env.REACT_APP_API_KEY;
+// Environment variables are injected by the build process (e.g., Vercel)
+// This code assumes you're using a single JSON string for Firebase config.
+const firebaseConfig = JSON.parse(process.env.REACT_APP_FIREBASE_CONFIG);
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API_KEY = process.env.REACT_APP_API_KEY;
+
+// Initialize Firebase services globally so they are accessible to all components
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [authError, setAuthError] = useState(null);
-  const [auth, setAuth] = useState(null);
-  const [db, setDb] = useState(null);
 
   useEffect(() => {
-    // Use environment variables for production
-    let firebaseConfig = {};
-    if (typeof process.env.REACT_APP_FIREBASE_CONFIG !== 'undefined' && process.env.REACT_APP_FIREBASE_CONFIG) {
-      try {
-        firebaseConfig = JSON.parse(process.env.REACT_APP_FIREBASE_CONFIG);
-      } catch (e) {
-        console.error("Failed to parse REACT_APP_FIREBASE_CONFIG environment variable:", e);
-        setAuthError("Failed to initialize Firebase due to config error.");
-        setIsAuthReady(true);
-        return;
-      }
-    } else {
-      // In development, we can try to use the Canvas provided variables
-      if (typeof window.__firebase_config !== 'undefined' && window.__firebase_config) {
-        firebaseConfig = JSON.parse(window.__firebase_config);
-      } else {
-        console.error("REACT_APP_FIREBASE_CONFIG is not defined.");
-        setAuthError("Failed to initialize Firebase: Configuration missing.");
-        setIsAuthReady(true);
-        return;
-      }
-    }
-
-    try {
-      const app = initializeApp(firebaseConfig);
-      const firestoreDb = getFirestore(app);
-      const firebaseAuth = getAuth(app);
-      setDb(firestoreDb);
-      setAuth(firebaseAuth);
-
-      const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
-        setUser(user);
-        setIsAuthReady(true);
-      });
-      return () => unsubscribe();
-    } catch (err) {
-      console.error("Firebase initialization failed:", err);
-      setAuthError("Failed to initialize Firebase. Please check your configuration.");
+    // Set up the auth state change listener to manage user state
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
       setIsAuthReady(true);
-    }
+      setLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   const handleLogout = async () => {
