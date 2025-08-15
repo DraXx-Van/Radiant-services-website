@@ -4,15 +4,12 @@ import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from
 import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 
 // Environment variables are injected by the build process (e.g., Vercel)
-// This code assumes you're using a single JSON string for Firebase config.
-const firebaseConfig = JSON.parse(process.env.REACT_APP_FIREBASE_CONFIG);
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API_KEY = process.env.REACT_APP_API_KEY;
 
-// Initialize Firebase services globally so they are accessible to all components
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+// Define variables outside the component to avoid re-initialization
+let auth;
+let db;
 
 function App() {
   const [user, setUser] = useState(null);
@@ -21,13 +18,25 @@ function App() {
   const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
-    // Set up the auth state change listener to manage user state
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    try {
+      const firebaseConfig = JSON.parse(process.env.REACT_APP_FIREBASE_CONFIG);
+      const app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
+
+      // Set up the auth state change listener to manage user state
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setUser(user);
+        setIsAuthReady(true);
+        setLoading(false);
+      });
+      return () => unsubscribe();
+    } catch (err) {
+      console.error("Firebase initialization failed:", err);
+      setAuthError("Failed to initialize Firebase. Please check your configuration.");
       setIsAuthReady(true);
       setLoading(false);
-    });
-    return () => unsubscribe();
+    }
   }, []);
 
   const handleLogout = async () => {
@@ -38,7 +47,7 @@ function App() {
     }
   };
 
-  if (!isAuthReady) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white">
         <p>Loading...</p>
