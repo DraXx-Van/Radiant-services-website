@@ -3,7 +3,6 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from 'firebase/firestore';
 
-// Note: __app_id, __firebase_config, and __initial_auth_token are provided by the environment
 // We are moving the initialization inside the useEffect for better control
 const API_KEY = process.env.REACT_APP_API_KEY;
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -30,8 +29,8 @@ function App() {
       }
     } else {
       // In development, we can try to use the Canvas provided variables
-      if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-        firebaseConfig = JSON.parse(__firebase_config);
+      if (typeof window.__firebase_config !== 'undefined' && window.__firebase_config) {
+        firebaseConfig = JSON.parse(window.__firebase_config);
       } else {
         console.error("REACT_APP_FIREBASE_CONFIG is not defined.");
         setAuthError("Failed to initialize Firebase: Configuration missing.");
